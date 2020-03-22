@@ -54,7 +54,9 @@ function drawCircle(context,entity) {
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        // arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        rect(x, y, (entity["radius"])?entity["radius"]:50, (entity["radius"])?entity["radius"]:50);
+        fill();
         stroke();                                
     }
 }
@@ -121,10 +123,15 @@ function getPosition(e) {
 	}
 }
 
+//https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+
+    socket.send(Json.stringify({
+        entity: data
+    }))
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -231,15 +238,18 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'white'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'white'});
 });
 
+var rainbow = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet']
+
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    let colour = rainbow[Math.floor(Math.random() * 7 + 1)];
+    addEntityWithoutName({'x':x,'y':y,'colour':colour,
                           'radius':10});
 });
 
@@ -261,12 +271,21 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?
+            var message = JSON.parse(msg.data);
+            addMessage(message)
         } catch (e) {
             alert("socket on message: " + e);
         }
     }; 
 }
+
+function addMessage( msg ) {
+    for (let k in msg){
+        world[k] = msg[k];
+    }
+    drawNextFrame();
+};
 
 wsSetup();
 
